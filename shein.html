@@ -5,15 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shein Sales Tracker</title>
     <style>
-        /* Styles remain unchanged */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            background: linear-gradient(135deg, #f9f9f9, #eaeaea);
+            background: #f4f4f9;
             min-height: 100vh;
         }
 
@@ -78,7 +77,7 @@
             transition: border 0.3s ease;
         }
 
-        input[type="text"]:focus, input[type="number"]:focus, input[type="tel"]:focus {
+        input:focus {
             border-color: #007bff;
             outline: none;
         }
@@ -121,21 +120,6 @@
             justify-content: center;
         }
 
-        .control-panel button {
-            padding: 10px 20px;
-            background-color: #6c757d;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.3s ease;
-        }
-
-        .control-panel button:hover {
-            background-color: #5a6268;
-        }
-
         .debug-output {
             margin-top: 20px;
             padding: 10px;
@@ -152,14 +136,12 @@
 <body>
 
 <h1>Shein Sales Tracker</h1>
-<img src="D3.png" width="150" height="100">
-
 
 <div class="container">
     <form id="salesForm">
         <input type="text" id="customerName" placeholder="Customer Name" required>
-        <input type="tel" id="customerPhone" placeholder="Customer Phone Number (Max 8 digits)" pattern="\d{1,8}"
-               maxlength="8" required>
+        <input type="tel" id="customerPhone" placeholder="Customer Phone (Max 8 digits)" pattern="\d{1,8}" maxlength="8"
+               required>
         <input type="number" id="amountSpent" placeholder="Amount Spent (DT)" step="0.01" required>
         <button type="submit">Add Sale</button>
     </form>
@@ -170,7 +152,7 @@
             <th>#</th>
             <th>Customer Name</th>
             <th>Customer Phone</th>
-            <th>Amount Spent ($)</th>
+            <th>Amount Spent (DT)</th>
             <th>Amount with Tax (DT)</th>
         </tr>
         </thead>
@@ -188,8 +170,8 @@
 </div>
 
 <div class="total-container">
-    <div id="totalAmount">Total Amount (No Tax): $0.00</div>
-    <div id="totalWithTax">Total Amount (With Tax): DT0.00</div>
+    <div id="totalAmount">Total Amount (No Tax): 0.00 EURO</div>
+    <div id="totalWithTax">Total Tax Amount: 0.00 DT</div>
 </div>
 
 <script>
@@ -200,7 +182,7 @@
 
     let salesData = [];
     let totalAmount = 0;
-    let totalWithTax = 0;
+    let totalTaxAmount = 0; // Only tracks the tax-applied amounts
 
     function updateTable() {
         // Clear existing rows
@@ -213,19 +195,19 @@
         <td>${index + 1}</td>
         <td>${sale.name}</td>
         <td>${sale.phone}</td>
-        <td>$${sale.amount.toFixed(2)}</td>
-        <td>$${sale.amountWithTax.toFixed(2)}</td>
+        <td>${sale.amount.toFixed(2)} EURO</td>
+        <td>${sale.amountWithTax.toFixed(2)} DT</td>
       `;
             salesTableBody.appendChild(row);
         });
 
         // Update totals
-        totalAmountDisplay.textContent = `Total Amount (No Tax): $${totalAmount.toFixed(2)}`;
-        totalWithTaxDisplay.textContent = `Total Amount (With Tax): $${totalWithTax.toFixed(2)}`;
+        totalAmountDisplay.textContent = `Total Amount (No Tax): ${totalAmount.toFixed(2)} EURO`;
+        totalWithTaxDisplay.textContent = `Total Tax Amount: ${totalTaxAmount.toFixed(2)} DT`;
     }
 
     document.getElementById('salesForm').addEventListener('submit', function (event) {
-        event.preventDefault(); // Prevent form submission
+        event.preventDefault(); // Prevent default form submission
 
         // Get input values
         const customerName = document.getElementById('customerName').value.trim();
@@ -240,8 +222,9 @@
 
         // Ensure all fields are filled and valid
         if (customerName && customerPhone && !isNaN(amountSpent)) {
-            const taxRate = 4.7; // Tax is 4.7 times the regular amount
-            const amountWithTax = amountSpent * (1 + taxRate);
+            const taxRate = 4.7; // Tax rate is 4.7 times the regular amount
+            const taxOnly = amountSpent * taxRate; // Calculate only the tax portion
+            const amountWithTax = amountSpent * taxRate // Total amount with tax
 
             // Add sale to data array
             salesData.push({
@@ -253,7 +236,7 @@
 
             // Update totals
             totalAmount += amountSpent;
-            totalWithTax += amountWithTax;
+            totalTaxAmount += taxOnly; // Add only the tax portion
 
             // Clear form fields
             document.getElementById('customerName').value = '';
@@ -265,8 +248,8 @@
 
             // Debugging output
             console.log('Sales Data:', salesData);
-            console.log('Total Amount:', totalAmount);
-            console.log('Total With Tax:', totalWithTax);
+            console.log('Total Amount (No Tax):', totalAmount);
+            console.log('Total Tax Amount:', totalTaxAmount);
         } else {
             alert('Please fill in all fields correctly.');
         }
@@ -280,11 +263,11 @@
     document.getElementById('clearData').addEventListener('click', () => {
         salesData = [];
         totalAmount = 0;
-        totalWithTax = 0;
+        totalTaxAmount = 0;
         salesTableBody.innerHTML = '';
         debugOutput.textContent = '';
-        totalAmountDisplay.textContent = `Total Amount (No Tax): $0.00`;
-        totalWithTaxDisplay.textContent = `Total Amount (With Tax): $0.00`;
+        totalAmountDisplay.textContent = `Total Amount (No Tax): 0.00 EURO`;
+        totalWithTaxDisplay.textContent = `Total Tax Amount: 0.00 DT`;
 
         console.log('All data cleared.');
     });
