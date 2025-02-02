@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shein Sales Tracker</title>
+    <style>
+        /* Styles remain unchanged */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(135deg, #f9f9f9, #eaeaea);
+            min-height: 100vh;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-top: 20px;
+            font-size: 2rem;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f4f4f4;
+            color: #333;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"], input[type="number"], input[type="tel"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 250px;
+            font-size: 1rem;
+            transition: border 0.3s ease;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, input[type="tel"]:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .total-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            font-size: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .control-panel {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .control-panel button {
+            padding: 10px 20px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .control-panel button:hover {
+            background-color: #5a6268;
+        }
+
+        .debug-output {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Shein Sales Tracker</h1>
+<img src="D3.png" width="150" height="100">
+
+
+<div class="container">
+    <form id="salesForm">
+        <input type="text" id="customerName" placeholder="Customer Name" required>
+        <input type="tel" id="customerPhone" placeholder="Customer Phone Number (Max 8 digits)" pattern="\d{1,8}"
+               maxlength="8" required>
+        <input type="number" id="amountSpent" placeholder="Amount Spent (DT)" step="0.01" required>
+        <button type="submit">Add Sale</button>
+    </form>
+
+    <table id="salesTable">
+        <thead>
+        <tr>
+            <th>#</th>
+            <th>Customer Name</th>
+            <th>Customer Phone</th>
+            <th>Amount Spent ($)</th>
+            <th>Amount with Tax (DT)</th>
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <div class="control-panel">
+        <button id="viewData">View Raw Data</button>
+        <button id="clearData">Clear All Data</button>
+        <button id="exportData">Export Data</button>
+    </div>
+
+    <div class="debug-output" id="debugOutput"></div>
+</div>
+
+<div class="total-container">
+    <div id="totalAmount">Total Amount (No Tax): $0.00</div>
+    <div id="totalWithTax">Total Amount (With Tax): DT0.00</div>
+</div>
+
+<script>
+    const salesTableBody = document.querySelector('#salesTable tbody');
+    const totalAmountDisplay = document.getElementById('totalAmount');
+    const totalWithTaxDisplay = document.getElementById('totalWithTax');
+    const debugOutput = document.getElementById('debugOutput');
+
+    let salesData = [];
+    let totalAmount = 0;
+    let totalWithTax = 0;
+
+    function updateTable() {
+        // Clear existing rows
+        salesTableBody.innerHTML = '';
+
+        // Add new rows for each sale
+        salesData.forEach((sale, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+        <td>${index + 1}</td>
+        <td>${sale.name}</td>
+        <td>${sale.phone}</td>
+        <td>$${sale.amount.toFixed(2)}</td>
+        <td>$${sale.amountWithTax.toFixed(2)}</td>
+      `;
+            salesTableBody.appendChild(row);
+        });
+
+        // Update totals
+        totalAmountDisplay.textContent = `Total Amount (No Tax): $${totalAmount.toFixed(2)}`;
+        totalWithTaxDisplay.textContent = `Total Amount (With Tax): $${totalWithTax.toFixed(2)}`;
+    }
+
+    document.getElementById('salesForm').addEventListener('submit', function (event) {
+        event.preventDefault(); // Prevent form submission
+
+        // Get input values
+        const customerName = document.getElementById('customerName').value.trim();
+        const customerPhone = document.getElementById('customerPhone').value.trim();
+        const amountSpent = parseFloat(document.getElementById('amountSpent').value);
+
+        // Validate phone number length
+        if (!/^\d{1,8}$/.test(customerPhone)) {
+            alert('Phone number must be up to 8 digits.');
+            return;
+        }
+
+        // Ensure all fields are filled and valid
+        if (customerName && customerPhone && !isNaN(amountSpent)) {
+            const taxRate = 4.7; // Tax is 4.7 times the regular amount
+            const amountWithTax = amountSpent * (1 + taxRate);
+
+            // Add sale to data array
+            salesData.push({
+                name: customerName,
+                phone: customerPhone,
+                amount: amountSpent,
+                amountWithTax: amountWithTax
+            });
+
+            // Update totals
+            totalAmount += amountSpent;
+            totalWithTax += amountWithTax;
+
+            // Clear form fields
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerPhone').value = '';
+            document.getElementById('amountSpent').value = '';
+
+            // Update table and totals
+            updateTable();
+
+            // Debugging output
+            console.log('Sales Data:', salesData);
+            console.log('Total Amount:', totalAmount);
+            console.log('Total With Tax:', totalWithTax);
+        } else {
+            alert('Please fill in all fields correctly.');
+        }
+    });
+
+    // Debug/Control Panel
+    document.getElementById('viewData').addEventListener('click', () => {
+        debugOutput.textContent = JSON.stringify(salesData, null, 2);
+    });
+
+    document.getElementById('clearData').addEventListener('click', () => {
+        salesData = [];
+        totalAmount = 0;
+        totalWithTax = 0;
+        salesTableBody.innerHTML = '';
+        debugOutput.textContent = '';
+        totalAmountDisplay.textContent = `Total Amount (No Tax): $0.00`;
+        totalWithTaxDisplay.textContent = `Total Amount (With Tax): $0.00`;
+
+        console.log('All data cleared.');
+    });
+
+    document.getElementById('exportData').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(salesData, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'shein_sales_data.json';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        console.log('Data exported.');
+    });
+
+    // Initialize the table and total amount
+    updateTable();
+</script>
+
+</body>
+</html>
