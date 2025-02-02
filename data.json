@@ -1,0 +1,14 @@
+
+  {
+    "amount": 100,
+    "amountWithTax": 570,
+    "name": "John Doe",
+    "phone": "23456789"
+  },
+  {
+    "name": "Jane Smith",
+    "phone": "91234567",
+    "amount": 200,
+    "amountWithTax": 1140
+  }
+
