@@ -182,53 +182,69 @@
     const totalWithTaxDisplay = document.getElementById('totalWithTax');
     const debugOutput = document.getElementById('debugOutput');
 
+    // Initialiser les variables globales
     let salesData = [];
     let totalAmount = 0;
-    let totalTaxAmount = 0; // Only tracks the tax-applied amounts
+    let totalTaxAmount = 0;
 
+    // Fonction pour charger les données depuis localStorage
+    function loadSalesData() {
+        const savedData = JSON.parse(localStorage.getItem('sheinSalesData')) || [];
+        if (savedData.length > 0) {
+            salesData = savedData;
+            salesData.forEach(sale => {
+                totalAmount += sale.amount;
+                totalTaxAmount += sale.amount * 4.7; // Taxe de 4.7 fois le montant
+            });
+        }
+        updateTable();
+    }
+
+    // Sauvegarder les données dans localStorage
+    function saveSalesData() {
+        localStorage.setItem('sheinSalesData', JSON.stringify(salesData));
+    }
+
+    // Mettre à jour le tableau et les totaux
     function updateTable() {
-        // Clear existing rows
         salesTableBody.innerHTML = '';
-
-        // Add new rows for each sale
         salesData.forEach((sale, index) => {
             const row = document.createElement('tr');
             row.innerHTML = `
-        <td>${index + 1}</td>
-        <td>${sale.name}</td>
-        <td>${sale.phone}</td>
-        <td>${sale.amount.toFixed(2)} EURO</td>
-        <td>${sale.amountWithTax.toFixed(2)} DT</td>
-      `;
+                <td>${index + 1}</td>
+                <td>${sale.name}</td>
+                <td>${sale.phone}</td>
+                <td>${sale.amount.toFixed(2)} EURO</td>
+                <td>${sale.amountWithTax.toFixed(2)} DT</td>
+            `;
             salesTableBody.appendChild(row);
         });
-
-        // Update totals
         totalAmountDisplay.textContent = `Total Amount (No Tax): ${totalAmount.toFixed(2)} EURO`;
         totalWithTaxDisplay.textContent = `Total Tax Amount: ${totalTaxAmount.toFixed(2)} DT`;
     }
 
+    // Écouter la soumission du formulaire
     document.getElementById('salesForm').addEventListener('submit', function (event) {
-        event.preventDefault(); // Prevent default form submission
+        event.preventDefault(); // Empêcher la soumission par défaut
 
-        // Get input values
+        // Récupérer les valeurs des champs
         const customerName = document.getElementById('customerName').value.trim();
         const customerPhone = document.getElementById('customerPhone').value.trim();
         const amountSpent = parseFloat(document.getElementById('amountSpent').value);
 
-        // Validate phone number length
+        // Valider le numéro de téléphone
         if (!/^\d{1,8}$/.test(customerPhone)) {
             alert('Phone number must be up to 8 digits.');
             return;
         }
 
-        // Ensure all fields are filled and valid
+        // Vérifier que tous les champs sont remplis et valides
         if (customerName && customerPhone && !isNaN(amountSpent)) {
-            const taxRate = 4.7; // Tax rate is 4.7 times the regular amount
-            const taxOnly = amountSpent * taxRate; // Calculate only the tax portion
-            const amountWithTax = amountSpent * taxRate // Total amount with tax
+            const taxRate = 4.7; // Taux de taxe
+            const taxOnly = amountSpent * taxRate; // Calculer uniquement la partie taxe
+            const amountWithTax = amountSpent * taxRate; // Montant avec taxe
 
-            // Add sale to data array
+            // Ajouter la vente aux données
             salesData.push({
                 name: customerName,
                 phone: customerPhone,
@@ -236,19 +252,20 @@
                 amountWithTax: amountWithTax
             });
 
-            // Update totals
+            // Mettre à jour les totaux
             totalAmount += amountSpent;
-            totalTaxAmount += taxOnly; // Add only the tax portion
+            totalTaxAmount += taxOnly;
 
-            // Clear form fields
+            // Réinitialiser les champs du formulaire
             document.getElementById('customerName').value = '';
             document.getElementById('customerPhone').value = '';
             document.getElementById('amountSpent').value = '';
 
-            // Update table and totals
+            // Mettre à jour le tableau et sauvegarder les données
             updateTable();
+            saveSalesData();
 
-            // Debugging output
+            // Sortie de débogage
             console.log('Sales Data:', salesData);
             console.log('Total Amount (No Tax):', totalAmount);
             console.log('Total Tax Amount:', totalTaxAmount);
@@ -257,11 +274,12 @@
         }
     });
 
-    // Debug/Control Panel
+    // Afficher les données brutes
     document.getElementById('viewData').addEventListener('click', () => {
         debugOutput.textContent = JSON.stringify(salesData, null, 2);
     });
 
+    // Effacer toutes les données
     document.getElementById('clearData').addEventListener('click', () => {
         salesData = [];
         totalAmount = 0;
@@ -271,9 +289,12 @@
         totalAmountDisplay.textContent = `Total Amount (No Tax): 0.00 EURO`;
         totalWithTaxDisplay.textContent = `Total Tax Amount: 0.00 DT`;
 
+        // Supprimer les données de localStorage
+        localStorage.removeItem('sheinSalesData');
         console.log('All data cleared.');
     });
 
+    // Exporter les données
     document.getElementById('exportData').addEventListener('click', () => {
         const blob = new Blob([JSON.stringify(salesData, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
@@ -282,12 +303,11 @@
         a.download = 'shein_sales_data.json';
         a.click();
         URL.revokeObjectURL(url);
-
         console.log('Data exported.');
     });
 
-    // Initialize the table and total amount
-    updateTable();
+    // Charger les données au démarrage
+    loadSalesData();
 </script>
 
 </body>
